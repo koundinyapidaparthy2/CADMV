@@ -12,24 +12,20 @@ export const generateQuiz = async (config: QuizConfig, seenHashes: string[] = []
       apiKey = undefined;
     }
     
-    // Trim if it exists
+    // Aggressive cleaning of the key
     if (apiKey) {
+      // Remove any surrounding quotes that might have been injected
+      apiKey = apiKey.replace(/^["']|["']$/g, '');
+      // Remove any whitespace including newlines
       apiKey = apiKey.trim();
     }
 
     if (!apiKey) {
-      throw new Error("API Key is missing or invalid. Please ensure you have connected your Google account.");
+      throw new Error("API Key is missing. Please select your Google API Key.");
     }
 
     const ai = new GoogleGenAI({ apiKey });
     const modelId = "gemini-3-flash-preview";
-    
-    // Adjust thinking budget based on request size to balance latency/quality
-    const isLargeRequest = config.questionCount > 50;
-    const thinkingBudget = isLargeRequest ? 0 : 2048;
-
-    // Detect if running in Google AI Studio
-    const isAiStudio = typeof window !== 'undefined' && !!window.aistudio;
     
     const responseSchema = {
       type: Type.OBJECT,
@@ -64,13 +60,9 @@ export const generateQuiz = async (config: QuizConfig, seenHashes: string[] = []
       responseMimeType: "application/json",
       responseSchema: responseSchema,
       maxOutputTokens: 12000, 
+      // Note: We are not setting thinkingConfig to allow the model to use its default behavior.
+      // This also avoids potential configuration conflicts in certain environments.
     };
-
-    // Only apply thinking budget if NOT in AI Studio
-    // AND if the key is likely valid for thinking models (simple heuristic, not strictly needed but safe)
-    if (!isAiStudio) {
-      generationConfig.thinkingConfig = { thinkingBudget: thinkingBudget };
-    }
 
     const response = await ai.models.generateContent({
       model: modelId,
@@ -85,9 +77,10 @@ export const generateQuiz = async (config: QuizConfig, seenHashes: string[] = []
   } catch (error: any) {
     console.error("Error generating quiz:", error);
     
-    // Check for the specific 401 error message from the user's report
-    if (error.message && (error.message.includes("401") || error.message.includes("CREDENTIALS_MISSING") || error.message.includes("API keys are not supported"))) {
-      throw new Error("Authentication failed. Please verify your API Key is selected and valid.");
+    const msg = error.message || "";
+    // Handle specific Google API Auth errors
+    if (msg.includes("401") || msg.includes("UNAUTHENTICATED") || msg.includes("CREDENTIALS_MISSING") || msg.includes("API keys are not supported")) {
+      throw new Error("Authentication failed. Please re-select your Google API Key and ensure your project has the Generative Language API enabled.");
     }
     
     throw error;
