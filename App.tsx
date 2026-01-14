@@ -31,8 +31,8 @@ const App: React.FC = () => {
       // Display the actual error message for better debugging
       let msg = err.message || "We encountered an issue crafting your unique exam. Please try again.";
       
-      // Improve error message for known 401 cases
-      if (msg.includes("401") || msg.includes("UNAUTHENTICATED") || msg.includes("CREDENTIALS_MISSING") || msg.includes("Authentication failed")) {
+      // Improve error message for known 401 cases to ensure the UI button triggers
+      if (msg.includes("401") || msg.includes("UNAUTHENTICATED") || msg.includes("CREDENTIALS_MISSING") || msg.includes("Authentication failed") || msg.includes("Invalid API Key")) {
         msg = "Authentication Failed: Please re-select your Google API Key.";
       }
       
@@ -65,6 +65,8 @@ const App: React.FC = () => {
     }
   };
 
+  const isAuthError = error?.includes("Authentication") || error?.includes("API Key");
+
   const renderContent = () => {
     switch (appState) {
       case AppState.WELCOME:
@@ -89,8 +91,8 @@ const App: React.FC = () => {
                   <button onClick={handleDemoFallback} className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Demo Mode</button>
                </div>
                
-               {(error?.includes("Authentication") || error?.includes("API Key")) && window.aistudio && (
-                 <button onClick={handleRetryKey} className="text-blue-600 font-bold underline mt-4">
+               {isAuthError && window.aistudio && (
+                 <button onClick={handleRetryKey} className="text-blue-600 font-bold underline mt-4 hover:text-blue-800">
                    Re-select Google API Key
                  </button>
                )}

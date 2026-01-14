@@ -20,8 +20,10 @@ export const generateQuiz = async (config: QuizConfig, seenHashes: string[] = []
       apiKey = apiKey.trim();
     }
 
-    if (!apiKey) {
-      throw new Error("API Key is missing. Please select your Google API Key.");
+    // Basic format validation for Google API Keys
+    // Most Google API keys start with "AIza"
+    if (!apiKey || (apiKey.length > 0 && !apiKey.startsWith('AIza'))) {
+      throw new Error("Invalid API Key format. Please re-select your Google API Key.");
     }
 
     const ai = new GoogleGenAI({ apiKey });
@@ -60,8 +62,6 @@ export const generateQuiz = async (config: QuizConfig, seenHashes: string[] = []
       responseMimeType: "application/json",
       responseSchema: responseSchema,
       maxOutputTokens: 12000, 
-      // Note: We are not setting thinkingConfig to allow the model to use its default behavior.
-      // This also avoids potential configuration conflicts in certain environments.
     };
 
     const response = await ai.models.generateContent({
@@ -77,9 +77,15 @@ export const generateQuiz = async (config: QuizConfig, seenHashes: string[] = []
   } catch (error: any) {
     console.error("Error generating quiz:", error);
     
-    const msg = error.message || "";
-    // Handle specific Google API Auth errors
-    if (msg.includes("401") || msg.includes("UNAUTHENTICATED") || msg.includes("CREDENTIALS_MISSING") || msg.includes("API keys are not supported")) {
+    let msg = error.message || "";
+    
+    // Check for the specific JSON error object structure if it was stringified in the message
+    if (typeof msg === 'string' && (msg.includes("CREDENTIALS_MISSING") || msg.includes("UNAUTHENTICATED"))) {
+       throw new Error("Authentication failed. Please re-select your Google API Key.");
+    }
+    
+    // Fallback for general 401s
+    if (msg.includes("401") || msg.includes("API keys are not supported")) {
       throw new Error("Authentication failed. Please re-select your Google API Key and ensure your project has the Generative Language API enabled.");
     }
     

@@ -1,4 +1,5 @@
 
+
 export interface Question {
   questionId: string;
   difficulty: 'easy' | 'medium' | 'hard';
@@ -48,10 +49,12 @@ export interface QuizConfig {
 
 // Global declaration for AI Studio bridge
 declare global {
+  interface AIStudio {
+    hasSelectedApiKey(): Promise<boolean>;
+    openSelectKey(): Promise<void>;
+  }
+
   interface Window {
-    aistudio?: {
-      hasSelectedApiKey(): Promise<boolean>;
-      openSelectKey(): Promise<void>;
-    };
+    aistudio?: AIStudio;
   }
 }
