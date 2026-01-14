@@ -1,0 +1,5 @@
+{
+  "name": "CA DMV Prep AI",
+  "description": "An AI-powered California DMV practice test generator that creates unique 50-question quizzes tailored to the official handbook guidelines.",
+  "requestFramePermissions": []
+}
